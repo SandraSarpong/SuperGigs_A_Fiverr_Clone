@@ -5,14 +5,16 @@ import upload from "../../utils/upload";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import newRequest from "../../utils/newRequest";
 import { useNavigate } from "react-router-dom";
+import { useForm } from 'react-hook-form'
+import axios from 'axios'
 
 const Add = () => {
   const [singleFile, setSingleFile] = useState(undefined);
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
-
+  const {register, reset, handleSubmit} = useForm()
   const [state, dispatch] = useReducer(gigReducer, INITIAL_STATE);
-
+  const [selectedValue, setSelectedValue] = useState("");
   const handleChange = (e) => {
     dispatch({
       type: "CHANGE_INPUT",
@@ -50,36 +52,75 @@ const Add = () => {
 
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+
+  //  const postGig = (data) => {
+  //   return axios.post("https://clever-clam-visor.cyclic.app/api/gigs", data)
+  // }
+  const {isLoading, mutate} = useMutation({
     mutationFn: (gig) => {
-      return newRequest.post("/gigs", gig);
-    },
+          return newRequest.post("/gigs", gig);
+        },
     onSuccess: () => {
       queryClient.invalidateQueries(["myGigs"]);
     },
   });
+  // const {isLoading, mutate} = useMutation({
+  //   mutationFn: (gig) => {
+  //     return newRequest.post("/gigs", gig);
+  //   },
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries("myGigs");
+  //   },
+  // });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    mutation.mutate(state);
-    // navigate("/mygigs")
-  };
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
+  //   console.log(state)
+  //   mutate(state);
+  //   // navigate("/mygigs")
+  // };
+
+  // const url = "https://clever-clam-visor.cyclic.app/api/gigs"
+  const OnSUbmit = handleSubmit( async (values)=> {
+    const data = {
+          userId: JSON.parse(localStorage.getItem("currentUser"))?._id,
+          title: values.title,
+          desc: values.desc,
+          shortTitle: values.shortTitle,
+          shortDesc: values.shortDesc,
+          deliveryTime: parseInt(values.deliveryTime),
+          price: parseInt(values.price),
+          cat: selectedValue
+        }
+        console.log(data)
+        try {
+      console.log(data)
+      const response = await newRequest.post("gigs", data)
+      reset()
+      return response.statusText
+    } catch (error) {
+      window.alert("Fail to post gig")
+      return error.statusText
+    }
+  })
 
   return (
     <div className="add">
       <div className="container">
         <h1>Add New Gig</h1>
+        <form onSubmit={OnSUbmit}>
         <div className="sections">
+          
           <div className="info">
             <label htmlFor="">Title</label>
             <input
               type="text"
-              name="title"
+              
               placeholder="e.g. I will do something I'm really good at"
-              onChange={handleChange}
+              {...register("title")}
             />
             <label htmlFor="">Category</label>
-            <select name="cat" id="cat" onChange={handleChange}>
+            <select  id="cat" value={selectedValue} onChange={(e) => setSelectedValue(e.target.value)} >
               <option value="design">Design</option>
               <option value="web">Web Development</option>
               <option value="animation">Animation</option>
@@ -105,47 +146,47 @@ const Add = () => {
             </div>
             <label htmlFor="">Description</label>
             <textarea
-              name="desc"
+              
               id=""
               placeholder="Brief descriptions to introduce your service to customers"
               cols="0"
               rows="16"
-              onChange={handleChange}
+              {...register("desc")}
             ></textarea>
-            <button onClick={handleSubmit}>Create</button>
+            <button onClick={OnSUbmit}>Create</button>
           </div>
           <div className="details">
             <label htmlFor="">Service Title</label>
             <input
               type="text"
-              name="shortTitle"
+             
               placeholder="e.g. One-page web design"
-              onChange={handleChange}
+              {...register("shortTitle")}
             />
             <label htmlFor="">Short Description</label>
             <textarea
-              name="shortDesc"
-              onChange={handleChange}
+              
+              {...register("shortDesc")}
               id=""
               placeholder="Short description of your service"
               cols="30"
               rows="10"
             ></textarea>
             <label htmlFor="">Delivery Time (e.g. 3 days)</label>
-            <input type="number" name="deliveryTime" onChange={handleChange} />
+            <input type="number"  {...register("deliveryTime")} />
             <label htmlFor="">Revision Number</label>
             <input
               type="number"
-              name="revisionNumber"
-              onChange={handleChange}
+              
+              {...register("revisionNumber")}
             />
             <label htmlFor="">Add Features</label>
-            <form action="" className="add" onSubmit={handleFeature}>
+            {/* <form action="" className="add" onSubmit={handleFeature}> */}
               <input type="text" placeholder="e.g. page design" />
-              <button type="submit">add</button>
-            </form>
+              {/* <button type="submit">add</button> */}
+            {/* </form> */}
             <div className="addedFeatures">
-              {state?.features?.map((f) => (
+              {/* {state?.features?.map((f) => (
                 <div className="item" key={f}>
                   <button
                     onClick={() =>
@@ -156,12 +197,13 @@ const Add = () => {
                     <span>X</span>
                   </button>
                 </div>
-              ))}
+              ))} */}
             </div>
             <label htmlFor="">Price</label>
-            <input type="number" onChange={handleChange} name="price" />
+            <input type="number" {...register("price")}  />
           </div>
         </div>
+        </form>
       </div>
     </div>
   );
